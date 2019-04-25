@@ -37,7 +37,7 @@ public class BlockSpawnerSystem : JobComponentSystem
             for (int x = 0; x < spawner.CountX; x++) {
                 for (int y = 0; y < spawner.CountY; y++) {
 
-                    var noiseHeight = noise.snoise(new float2(x, y) * 0.1F) * 4 + 2;
+                    var noiseHeight = noise.snoise(new float2(x, y) * 0.08F) * 4 + 3;
 
                     if (noiseHeight < 0) {
                         noiseHeight = 0;
@@ -53,12 +53,6 @@ public class BlockSpawnerSystem : JobComponentSystem
                             CommandBuffer.SetComponent(inst, new Translation { Value = pos });
                         }
                     }
-                    //else {
-                    //    var inst = CommandBuffer.Instantiate(spawner.Prefab);
-                    //    var pos = math.transform(location.Value,
-                    //            new float3(x, 0, y));
-                    //    CommandBuffer.SetComponent(inst, new Translation { Value = pos });
-                    //}
                 }
             }
 
