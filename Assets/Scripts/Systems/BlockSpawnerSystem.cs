@@ -3,7 +3,9 @@ using Unity.Collections;
 using Unity.Entities;
 using Unity.Jobs;
 using Unity.Mathematics;
+using Unity.Physics;
 using Unity.Transforms;
+using UnityEngine;
 
 // JobComponentSystems can run on worker threads.
 // However, creating and removing Entities can only be done on the main thread to prevent race conditions.
@@ -11,29 +13,22 @@ using Unity.Transforms;
 [UpdateInGroup(typeof(SimulationSystemGroup))]
 public class BlockSpawnerSystem : JobComponentSystem
 {
-    // BeginInitializationEntityCommandBufferSystem is used to create a command buffer which will then be played back
-    // when that barrier system executes.
-    // Though the instantiation command is recorded in the SpawnJob, it's not actually processed (or "played back")
-    // until the corresponding EntityCommandBufferSystem is updated. To ensure that the transform system has a chance
-    // to run on the newly-spawned entities before they're rendered for the first time, the HelloSpawnerSystem
-    // will use the BeginSimulationEntityCommandBufferSystem to play back its commands. This introduces a one-frame lag
-    // between recording the commands and instantiating the entities, but in practice this is usually not noticeable.
     BeginInitializationEntityCommandBufferSystem m_EntityCommandBufferSystem;
 
     protected override void OnCreate()
     {
-        // Cache the BeginInitializationEntityCommandBufferSystem in a field, so we don't have to create it every frame
         m_EntityCommandBufferSystem = World.GetOrCreateSystem<BeginInitializationEntityCommandBufferSystem>();
     }
 
-    struct SpawnJob : IJobForEachWithEntity<BlockSpawner, LocalToWorld>
+    public struct SpawnJob : IJobForEachWithEntity<BlockSpawner, LocalToWorld>
     {
-        public EntityCommandBuffer CommandBuffer;
+        public EntityCommandBuffer.Concurrent CommandBuffer;
 
         public void Execute(Entity entity, int index,
             [ReadOnly] ref BlockSpawner spawner,
             [ReadOnly] ref LocalToWorld location)
         {
+
             for (int x = 0; x < spawner.CountX; x++) {
                 for (int y = 0; y < spawner.CountY; y++) {
 
@@ -46,17 +41,27 @@ public class BlockSpawnerSystem : JobComponentSystem
                     if (noiseHeight >= 0) {
                         for (int z = 0; z <= (int)noiseHeight; z++) {
 
-                            var inst = CommandBuffer.Instantiate(spawner.Prefab);
+                            var dirtInst = CommandBuffer.Instantiate(index, spawner.DirtPrefab);
 
-                            var pos = math.transform(location.Value,
-                                new float3(x, z, y));
-                            CommandBuffer.SetComponent(inst, new Translation { Value = pos });
+                            var dirtEntityPos = math.transform(location.Value, new float3(x, z, y));
+                            CommandBuffer.SetComponent(index, dirtInst, new Translation { Value = dirtEntityPos });
+                            CommandBuffer.AddComponent(index, dirtInst, new BlockTag());
+                            CommandBuffer.AddComponent(index, dirtInst, new ColliderComponent { HasColliderBox = false });
+                            CommandBuffer.AddComponent(index, dirtInst, new PlayerDistance { Value = 500.0f });
                         }
                     }
+
+
+                    var grassInst = CommandBuffer.Instantiate(index, spawner.GrassPrefab);
+                    var grassEntityPos = math.transform(location.Value, new float3(x, (int)noiseHeight + 1, y));
+                    CommandBuffer.SetComponent(index, grassInst, new Translation { Value = grassEntityPos });
+                    CommandBuffer.AddComponent(index, grassInst, new BlockTag());
+                    CommandBuffer.AddComponent(index, grassInst, new ColliderComponent{ HasColliderBox = false });
+                    CommandBuffer.AddComponent(index, grassInst, new PlayerDistance { Value = 500.0f });
                 }
             }
 
-            CommandBuffer.DestroyEntity(entity);
+            CommandBuffer.DestroyEntity(index, entity);
         }
     }
 
@@ -67,15 +72,11 @@ public class BlockSpawnerSystem : JobComponentSystem
 
         // Schedule the job that will add Instantiate commands to the EntityCommandBuffer.
         var job = new SpawnJob {
-            CommandBuffer = m_EntityCommandBufferSystem.CreateCommandBuffer()
-        }.ScheduleSingle(this, inputDeps);
+            CommandBuffer = m_EntityCommandBufferSystem.CreateCommandBuffer().ToConcurrent()
+        }.Schedule(this, inputDeps);
 
 
-        // SpawnJob runs in parallel with no sync point until the barrier system executes.
-        // When the barrier system executes we want to complete the SpawnJob and then play back the commands (Creating the entities and placing them).
-        // We need to tell the barrier system which job it needs to complete before it can play back the commands.
         m_EntityCommandBufferSystem.AddJobHandleForProducer(job);
-
         return job;
     }
 }
