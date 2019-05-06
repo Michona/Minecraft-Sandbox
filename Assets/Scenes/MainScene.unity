@@ -164,6 +164,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   PlayerPrefab: {fileID: 100000, guid: 5e9e851c0e142814dac026a256ba2ac0, type: 3}
+  WireframeBoxPrefab: {fileID: 1457187789517677315, guid: 49fb980eecc43994fafaf6de35e59ee2,
+    type: 3}
+  BlockDirtType: {fileID: 2111685526171132833, guid: 141cf9cc37891e14a845754aba042e01,
+    type: 3}
 --- !u!1 &705507993
 GameObject:
   m_ObjectHideFlags: 0
@@ -316,8 +320,8 @@ MonoBehaviour:
     type: 3}
   GrassPrefab: {fileID: 7182673805876859255, guid: 0d242cb15d25871429429b89cf382095,
     type: 3}
-  CountX: 5
-  CountY: 5
+  CountX: 20
+  CountY: 20
 --- !u!1 &1512579477
 GameObject:
   m_ObjectHideFlags: 0

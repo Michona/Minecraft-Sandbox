@@ -8,47 +8,47 @@ using Unity.Mathematics;
 using Unity.Transforms;
 using UnityEngine;
 
-// This system updates all entities in the scene with both a RotationSpeed and Rotation component.
+[UpdateAfter(typeof(BlockSpawnerSystem))]
 public class BoxCollidersSystem : JobComponentSystem
 {
-    NativeQueue<float3> addBoxQueue;
+    private NativeArray<float3> boxesToAdd;
+    private GameObject colliderBox;
 
-    GameObject colliderBox;
+    EntityCommandBufferSystem m_EntityCommandBufferSystem;
+
+    private EntityQuery m_CollidersGroup;
 
     protected override void OnCreate()
     {
-        addBoxQueue = new NativeQueue<float3>(Allocator.TempJob);
-
         colliderBox = (GameObject)Resources.Load("ColliderBox", typeof(GameObject));
+
+        m_CollidersGroup = GetEntityQuery(new EntityQueryDesc {
+            All = new[] { ComponentType.ReadOnly<SpawnColliderBoxTag>(), ComponentType.ReadOnly<Translation>() }
+        });
+
+        m_EntityCommandBufferSystem = World.GetOrCreateSystem<EndSimulationEntityCommandBufferSystem>();
     }
 
-    protected override void OnDestroy()
+    protected override void OnStopRunning()
     {
-        addBoxQueue.Dispose();
-        base.OnDestroy();
+        if (boxesToAdd.IsCreated) {
+            boxesToAdd.Dispose();
+        }
+        base.OnStopRunning();
     }
 
-    [BurstCompile]
     [RequireComponentTag(typeof(BlockTag))]
-    struct AddCollidersJob : IJobForEachWithEntity<Translation, ColliderComponent, PlayerDistance>
+    struct AddCollidersJob : IJobForEachWithEntity<Translation>
     {
+        public EntityCommandBuffer.Concurrent CommandBuffer;
 
         [WriteOnly]
-        public NativeQueue<float3>.Concurrent AddBoxQueue;
+        public NativeArray<float3> BoxesPositions;
 
-
-        public void Execute(Entity entity, int jobIndex,
-            [ReadOnly] ref Translation translation,
-            ref ColliderComponent colliderData,
-            [ReadOnly] ref PlayerDistance distance)
+        public void Execute(Entity entity, int index, ref Translation translation)
         {
-            if (distance.Value < 2) {
-
-                if (!colliderData.HasColliderBox) {
-                    AddBoxQueue.Enqueue(translation.Value);
-                    colliderData.HasColliderBox = true;
-                }
-            }
+            BoxesPositions[index] = translation.Value;
+            CommandBuffer.RemoveComponent(index, entity, typeof(SpawnColliderBoxTag));
         }
     }
 
@@ -56,19 +56,23 @@ public class BoxCollidersSystem : JobComponentSystem
     // OnUpdate runs on the main thread.
     protected override JobHandle OnUpdate(JobHandle inputDependencies)
     {
+
+        boxesToAdd = new NativeArray<float3>(m_CollidersGroup.CalculateLength(), Allocator.TempJob, NativeArrayOptions.UninitializedMemory);
+
         var colliderJob = new AddCollidersJob() {
-            AddBoxQueue = addBoxQueue.ToConcurrent(),
-        }.Schedule(this, inputDependencies);
+            CommandBuffer = m_EntityCommandBufferSystem.CreateCommandBuffer().ToConcurrent(),
+            BoxesPositions = boxesToAdd,
+        }.Schedule(m_CollidersGroup, inputDependencies);
 
         colliderJob.Complete();
 
-        float3 translation;
-        if (addBoxQueue.TryDequeue(out translation)) {
-
+        for (int i = 0; i < boxesToAdd.Length; i ++) {
             if (colliderBox) {
-                Object.Instantiate(colliderBox, translation, Quaternion.identity);
+                Object.Instantiate(colliderBox, boxesToAdd[i], Quaternion.identity);
             }
         }
+        boxesToAdd.Dispose();
+
         return colliderJob;
     }
 }

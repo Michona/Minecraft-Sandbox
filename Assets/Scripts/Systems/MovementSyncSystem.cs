@@ -1,15 +1,9 @@
-﻿using Unity.Burst;
-using Unity.Collections;
-using Unity.Entities;
-using Unity.Jobs;
-using Unity.Mathematics;
+﻿using Unity.Entities;
 using Unity.Transforms;
 using UnityEngine;
-using static Unity.Mathematics.math;
 
 public class MovementSyncSystem : ComponentSystem
 {
-
     EntityQuery query;
 
     protected override void OnCreate()
