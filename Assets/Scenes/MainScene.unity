@@ -168,6 +168,16 @@ MonoBehaviour:
     type: 3}
   BlockDirtType: {fileID: 2111685526171132833, guid: 141cf9cc37891e14a845754aba042e01,
     type: 3}
+  BlockWaterType: {fileID: 7728625109993118954, guid: 2ab8090494b92564488f042cc11fc153,
+    type: 3}
+  BlockFireType: {fileID: 6977384853876358653, guid: be4a3b8b066a1e946b33dd93354cec11,
+    type: 3}
+  BlockSnowType: {fileID: 1877171171323075231, guid: 03931408659ccc848a4b56145a9f21b2,
+    type: 3}
+  BlockRockType: {fileID: 1185474910342266187, guid: 2a760dd69c13b0a458f00adc6b16a3c6,
+    type: 3}
+  BlockGrassType: {fileID: 7182673805876859255, guid: 0d242cb15d25871429429b89cf382095,
+    type: 3}
 --- !u!1 &705507993
 GameObject:
   m_ObjectHideFlags: 0
@@ -319,6 +329,8 @@ MonoBehaviour:
   DirtPrefab: {fileID: 2111685526171132833, guid: 141cf9cc37891e14a845754aba042e01,
     type: 3}
   GrassPrefab: {fileID: 7182673805876859255, guid: 0d242cb15d25871429429b89cf382095,
+    type: 3}
+  SnowPrefab: {fileID: 1877171171323075231, guid: 03931408659ccc848a4b56145a9f21b2,
     type: 3}
   CountX: 20
   CountY: 20

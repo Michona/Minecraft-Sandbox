@@ -22,7 +22,7 @@ public class DestroySingleBlockSystem : JobComponentSystem
         m_DestroyBlockGroup = GetEntityQuery(new EntityQueryDesc {
             All = new [] { ComponentType.ReadOnly<DestroyBlockTag>(), ComponentType.ReadOnly<Translation>() }
         });
-        destroyedBlockPositions = new NativeArray<float3>(1, Allocator.TempJob);
+        destroyedBlockPositions = new NativeArray<float3>(1, Allocator.TempJob, NativeArrayOptions.UninitializedMemory);
 
         m_EntityCommandBufferSystem = World.GetOrCreateSystem<BeginSimulationEntityCommandBufferSystem>();
     }

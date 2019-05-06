@@ -6,4 +6,5 @@ public struct BlockSpawner : IComponentData
     public int CountY;
     public Entity DirtPrefab;
     public Entity GrassPrefab;
+    public Entity SnowPrefab;
 }

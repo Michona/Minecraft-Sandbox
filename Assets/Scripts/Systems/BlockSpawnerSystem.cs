@@ -51,8 +51,15 @@ public class BlockSpawnerSystem : JobComponentSystem
                         }
                     }
 
+                    Entity spawnEntity;
+                    if (noiseHeight > 5) {
+                        spawnEntity = spawner.SnowPrefab;
+                    }
+                    else {
+                        spawnEntity = spawner.GrassPrefab;
+                    }
 
-                    var grassInst = CommandBuffer.Instantiate(index, spawner.GrassPrefab);
+                    var grassInst = CommandBuffer.Instantiate(index, spawnEntity);
                     var grassEntityPos = math.transform(location.Value, new float3(x, (int)noiseHeight + 1, y));
                     CommandBuffer.SetComponent(index, grassInst, new Translation { Value = grassEntityPos });
                     CommandBuffer.AddComponent(index, grassInst, new BlockTag());

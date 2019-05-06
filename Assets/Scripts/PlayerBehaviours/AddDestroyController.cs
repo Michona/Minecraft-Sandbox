@@ -13,12 +13,23 @@ public class AddDestroyController : MonoBehaviour
 
     private Entity blockEntity;
 
+    private Entity dirtEntity;
+    private Entity waterEntity;
+    private Entity rockEntity;
+    private Entity fireEntity;
+
     void OnEnable()
     {
         wireframeBox = Object.Instantiate(GameInstance.Settings.WireframeBoxPrefab, Vector3.zero, Quaternion.identity);
         Assert.IsNotNull(wireframeBox);
 
-        blockEntity = GameObjectConversionUtility.ConvertGameObjectHierarchy(GameInstance.Settings.BlockDirtType, World.Active);
+        dirtEntity = GameObjectConversionUtility.ConvertGameObjectHierarchy(GameInstance.Settings.BlockDirtType, World.Active);
+        waterEntity = GameObjectConversionUtility.ConvertGameObjectHierarchy(GameInstance.Settings.BlockWaterType, World.Active);
+        rockEntity = GameObjectConversionUtility.ConvertGameObjectHierarchy(GameInstance.Settings.BlockRockType, World.Active);
+        fireEntity = GameObjectConversionUtility.ConvertGameObjectHierarchy(GameInstance.Settings.BlockFireType, World.Active);
+
+        blockEntity = dirtEntity;
+
         manager = World.Active.EntityManager;
     }
 
@@ -26,6 +37,7 @@ public class AddDestroyController : MonoBehaviour
     void Update()
     {
         WireframeUpdate();
+        HandleBlockChoosing();
 
         if (Input.GetMouseButtonDown(0)) {
             if (IsBlockAllowedToSpawn(wireframeBox.transform.position)) {
@@ -35,6 +47,22 @@ public class AddDestroyController : MonoBehaviour
 
         if (Input.GetMouseButtonDown(1)) {
             DestroyBlockEntity(wireframeBox.transform.position);
+        }
+    }
+
+    private void HandleBlockChoosing()
+    {
+        if (Input.GetKeyDown(KeyCode.Alpha1)) {
+            blockEntity = dirtEntity;
+        }
+        if (Input.GetKeyDown(KeyCode.Alpha2)) {
+            blockEntity = waterEntity;
+        }
+        if (Input.GetKeyDown(KeyCode.Alpha3)) {
+            blockEntity = rockEntity;
+        }
+        if (Input.GetKeyDown(KeyCode.Alpha4)) {
+            blockEntity = fireEntity;
         }
     }
 
