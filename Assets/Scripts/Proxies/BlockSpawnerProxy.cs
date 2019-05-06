@@ -8,6 +8,7 @@ public class BlockSpawnerProxy : MonoBehaviour, IDeclareReferencedPrefabs, IConv
 {
     public GameObject DirtPrefab;
     public GameObject GrassPrefab;
+    public GameObject SnowPrefab;
     public int CountX;
     public int CountY;
 
@@ -16,6 +17,7 @@ public class BlockSpawnerProxy : MonoBehaviour, IDeclareReferencedPrefabs, IConv
     {
         gameObjects.Add(DirtPrefab);
         gameObjects.Add(GrassPrefab);
+        gameObjects.Add(SnowPrefab);
     }
 
     // Lets you convert the editor data representation to the entity optimal runtime representation
@@ -27,6 +29,7 @@ public class BlockSpawnerProxy : MonoBehaviour, IDeclareReferencedPrefabs, IConv
             // So here we simply map the game object to an entity reference to that prefab.
             DirtPrefab = conversionSystem.GetPrimaryEntity(DirtPrefab),
             GrassPrefab = conversionSystem.GetPrimaryEntity(GrassPrefab),
+            SnowPrefab = conversionSystem.GetPrimaryEntity(SnowPrefab),
             CountX = CountX,
             CountY = CountY
         };

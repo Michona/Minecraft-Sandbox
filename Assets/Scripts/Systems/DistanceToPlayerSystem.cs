@@ -23,7 +23,7 @@ public class DistanceToPlayerSystem : JobComponentSystem
             All = new[] { ComponentType.ReadOnly<PlayerTag>(), ComponentType.ReadOnly<Translation>() }
         });
 
-        playerPositions = new NativeArray<float3>(1 ,Allocator.TempJob);
+        playerPositions = new NativeArray<float3>(1 ,Allocator.TempJob, NativeArrayOptions.UninitializedMemory);
         m_EntityCommandBufferSystem = World.GetOrCreateSystem<BeginSimulationEntityCommandBufferSystem>();
     }
 
