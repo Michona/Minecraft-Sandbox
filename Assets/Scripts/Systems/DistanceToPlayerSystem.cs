@@ -6,70 +6,83 @@ using Unity.Mathematics;
 using Unity.Transforms;
 using UnityEngine;
 
+[UpdateInGroup(typeof(SimulationSystemGroup))]
+[UpdateAfter(typeof(BlockSpawnerSystem))]
+[UpdateBefore(typeof(DestroySingleBlockSystem))]
 public class DistanceToPlayerSystem : JobComponentSystem
 {
-    private float3 playerPosition;
 
-    NativeQueue<float3> queue;
+    EntityCommandBufferSystem m_EntityCommandBufferSystem;
 
+    private EntityQuery m_PlayerGroup;
+    private NativeArray<float3> playerPositions;
 
     protected override void OnCreate()
     {
-        queue = new NativeQueue<float3>(Allocator.Persistent);
+        m_PlayerGroup = GetEntityQuery(new EntityQueryDesc {
+            All = new[] { ComponentType.ReadOnly<PlayerTag>(), ComponentType.ReadOnly<Translation>() }
+        });
+
+        playerPositions = new NativeArray<float3>(1 ,Allocator.TempJob);
+        m_EntityCommandBufferSystem = World.GetOrCreateSystem<BeginSimulationEntityCommandBufferSystem>();
     }
 
-    protected override void OnDestroy()
+
+    protected override void OnStopRunning()
     {
-        queue.Dispose();
-        base.OnDestroy();
+        playerPositions.Dispose();
+        base.OnStopRunning();
     }
 
     [BurstCompile]
     [RequireComponentTag(typeof(PlayerTag))]
-    struct GetPlayerPositionJob : IJobForEach<Translation>
+    struct GetPlayerPositionJob : IJobForEachWithEntity<Translation>
     {
         [WriteOnly]
-        public NativeQueue<float3>.Concurrent Queue;
+        public NativeArray<float3> PlayerPositions;
 
-        public void Execute([ReadOnly] ref Translation translation)
+        public void Execute(Entity entity, int index, ref Translation traslation)
         {
-            Queue.Enqueue(translation.Value);
+            PlayerPositions[index] = traslation.Value;
         }
     }
 
-    [BurstCompile]
     [RequireComponentTag(typeof(BlockTag))]
-    struct UpdateDistanceOnBlocksJob : IJobForEach<Translation, PlayerDistance>
+    struct UpdateDistanceOnBlocksJob : IJobForEachWithEntity<Translation, PlayerDistance, ColliderData>
     {
+
+        public EntityCommandBuffer.Concurrent CommandBuffer;
+
         [ReadOnly]
         public float3 PlayerPosition;
 
-        public void Execute([ReadOnly] ref Translation translation, [WriteOnly] ref PlayerDistance distance)
+        public void Execute(Entity entity, int index, [ReadOnly] ref Translation translation, [WriteOnly] ref PlayerDistance distance, ref ColliderData colliderData)
         {
-            float3 playerOffset = new float3(PlayerPosition.x, PlayerPosition.y, PlayerPosition.z);
-            distance.Value = math.distance(translation.Value, playerOffset);
+            distance.Value = math.distance(translation.Value, PlayerPosition);
+
+            if (distance.Value < 3) {
+                if (!colliderData.HasColliderBox) {
+                    CommandBuffer.AddComponent(index, entity, new SpawnColliderBoxTag());
+                    colliderData.HasColliderBox = true;
+                }
+            }
         }
     }
 
     protected override JobHandle OnUpdate(JobHandle inputDependencies)
     {
-
         var positionJob = new GetPlayerPositionJob {
-            Queue = queue.ToConcurrent()
-        }.Schedule(this, inputDependencies);
+            PlayerPositions = playerPositions
+        }.Schedule(m_PlayerGroup, inputDependencies);
 
         positionJob.Complete();
 
-        if (queue.TryDequeue(out playerPosition)) {
 
-            var distanceJob = new UpdateDistanceOnBlocksJob {
-                PlayerPosition = playerPosition
-            }.Schedule(this, inputDependencies);
+        var distanceJob = new UpdateDistanceOnBlocksJob {
+            CommandBuffer = m_EntityCommandBufferSystem.CreateCommandBuffer().ToConcurrent(),
+            PlayerPosition = playerPositions[0]
+        }.Schedule(this, positionJob);
 
-            return distanceJob;
-        }
-        queue.Dispose();
-
-        return positionJob;
+        return distanceJob;
     }
 }
