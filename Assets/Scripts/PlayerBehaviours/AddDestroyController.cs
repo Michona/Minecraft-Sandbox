@@ -1,10 +1,14 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using Unity.Entities;
+﻿using Unity.Entities;
 using Unity.Transforms;
 using UnityEngine;
 using UnityEngine.Assertions;
 
+/**
+ * Script attached to the player prefab.
+ * Updates the wireframe box to snap to grid.
+ * Reads input and creates/destroys blocks 
+ * and switch between types of blocks to spawn.
+ * */
 public class AddDestroyController : MonoBehaviour
 {
     private GameObject wireframeBox;
@@ -82,7 +86,8 @@ public class AddDestroyController : MonoBehaviour
         manager.SetComponentData(instance, new Translation { Value = position });
         manager.AddComponentData(instance, new BlockTag());
         manager.AddComponentData(instance, new ColliderData{ HasColliderBox = false });
-        manager.AddComponentData(instance, new PlayerDistance{ Value = 0 });
+        manager.AddComponentData(instance, new PlayerPosition { Value = transform.position });
+        manager.AddComponentData(instance, new PlayerCreatedTag());
     }
 
     private bool IsBlockAllowedToSpawn(Vector3 position)
@@ -104,8 +109,8 @@ public class AddDestroyController : MonoBehaviour
 
             Destroy(hit.transform.gameObject);
 
-            var instance = manager.Instantiate(blockEntity);
-            manager.SetComponentData(instance, new Translation {Value = position} );
+            var instance = manager.CreateEntity();
+            manager.AddComponentData(instance, new Translation {Value = position} );
             manager.AddComponentData(instance, new DestroyBlockTag());
         }
     }

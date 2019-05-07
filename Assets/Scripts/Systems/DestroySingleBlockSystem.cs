@@ -4,12 +4,16 @@ using Unity.Entities;
 using Unity.Jobs;
 using Unity.Mathematics;
 using Unity.Transforms;
-using UnityEngine;
-using static Unity.Mathematics.math;
 
+/**
+ * Gets the position of the block entity that needs to be destroyed
+ * and destroys entity at that position.
+ * The entity with DestroyBlockTag is created by the player.
+ * It runs the jobs only if the player tries to remove a block.
+ * */
 [UpdateInGroup(typeof(SimulationSystemGroup))]
-[UpdateAfter(typeof(BlockSpawnerSystem))]
-[UpdateAfter(typeof(DistanceToPlayerSystem))]
+[UpdateAfter(typeof(BlocksSpawnerSystem))]
+[UpdateAfter(typeof(RelativePositionSystem))]
 public class DestroySingleBlockSystem : JobComponentSystem
 {
 
@@ -22,7 +26,7 @@ public class DestroySingleBlockSystem : JobComponentSystem
         m_DestroyBlockGroup = GetEntityQuery(new EntityQueryDesc {
             All = new [] { ComponentType.ReadOnly<DestroyBlockTag>(), ComponentType.ReadOnly<Translation>() }
         });
-        destroyedBlockPositions = new NativeArray<float3>(1, Allocator.TempJob, NativeArrayOptions.UninitializedMemory);
+        destroyedBlockPositions = new NativeArray<float3>(1, Allocator.Persistent);
 
         m_EntityCommandBufferSystem = World.GetOrCreateSystem<BeginSimulationEntityCommandBufferSystem>();
     }
@@ -33,12 +37,12 @@ public class DestroySingleBlockSystem : JobComponentSystem
         base.OnStopRunning();
     }
 
+    [BurstCompile]
     struct GetDestroyBlockPositionJob : IJobForEachWithEntity<Translation>
     {
         [WriteOnly]
         public NativeArray<float3> TargetPosition;
         public EntityCommandBuffer.Concurrent CommandBuffer;
-
 
         public void Execute(Entity entity, int index, [ReadOnly] ref Translation translation)
         {
@@ -47,13 +51,13 @@ public class DestroySingleBlockSystem : JobComponentSystem
         }
     }
 
+    [BurstCompile]
     [RequireComponentTag(typeof(BlockTag))]
     struct DestroySingleBlockSystemJob : IJobForEachWithEntity<Translation>
     {
         [ReadOnly]
         public float3 TargetPosition;
         public EntityCommandBuffer.Concurrent CommandBuffer;
-
 
         public void Execute(Entity entity, int index, [ReadOnly] ref Translation translation)
         {
@@ -81,7 +85,6 @@ public class DestroySingleBlockSystem : JobComponentSystem
             return job;
         }
 
-        // Now that the job is set up, schedule it to be run. 
         return getDestroyBlockPositionJob;
     }
 }

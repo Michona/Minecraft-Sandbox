@@ -1,6 +1,4 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 
 public class GameSettings : MonoBehaviour
 {
@@ -15,5 +13,6 @@ public class GameSettings : MonoBehaviour
     public GameObject BlockRockType;
     public GameObject BlockGrassType;
 
-    public readonly Vector3 PlayerSpawnPosition = new Vector3(0, 10, 0);
+    public Vector3 PlayerSpawnPosition;
+    public int FieldSize;
 }
