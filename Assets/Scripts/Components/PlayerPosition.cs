@@ -4,7 +4,7 @@ using Unity.Entities;
 using Unity.Mathematics;
 
 [Serializable]
-public struct PlayerDistance : IComponentData
+public struct PlayerPosition: IComponentData
 {
-    public float Value;
+    public float3 Value;
 }

@@ -2,6 +2,10 @@
 using Unity.Transforms;
 using UnityEngine;
 
+/**
+ * Create a Translation component frm the player's Transform,
+ * so it can be used in jobs.
+ * */
 public class MovementSyncSystem : ComponentSystem
 {
     EntityQuery query;

@@ -8,8 +8,21 @@ using Unity.Mathematics;
 using Unity.Transforms;
 using UnityEngine;
 
-[UpdateAfter(typeof(BlockSpawnerSystem))]
-public class BoxCollidersSystem : JobComponentSystem
+/**
+ * Operates on entities with SpawnColliderTag added.
+ * Adds their position in native array container and 
+ * instantiates a ColliderBox (GameObject with only collider box attached) in that position.
+ * 
+ * The number of entities that get the SpawnColliderTag added is relatevly small,
+ * @see DistanceToPlayerSystem.
+ * 
+ * The job runs really fast and we wait for completion on the main thread where 
+ * the collider boxes are spawned.
+ * It removes the SpawmColliderTag once the entity position has been added to the array.
+ */
+[UpdateInGroup(typeof(SimulationSystemGroup))]
+[UpdateAfter(typeof(BlocksSpawnerSystem))]
+public class CollidersSpawnerSystem : JobComponentSystem
 {
     private NativeArray<float3> boxesToAdd;
     private GameObject colliderBox;
@@ -23,7 +36,7 @@ public class BoxCollidersSystem : JobComponentSystem
         colliderBox = (GameObject)Resources.Load("ColliderBox", typeof(GameObject));
 
         m_CollidersGroup = GetEntityQuery(new EntityQueryDesc {
-            All = new[] { ComponentType.ReadOnly<SpawnColliderBoxTag>(), ComponentType.ReadOnly<Translation>() }
+            All = new[] { ComponentType.ReadOnly<SpawnColliderTag>(), ComponentType.ReadOnly<Translation>() }
         });
 
         m_EntityCommandBufferSystem = World.GetOrCreateSystem<EndSimulationEntityCommandBufferSystem>();
@@ -48,16 +61,16 @@ public class BoxCollidersSystem : JobComponentSystem
         public void Execute(Entity entity, int index, ref Translation translation)
         {
             BoxesPositions[index] = translation.Value;
-            CommandBuffer.RemoveComponent(index, entity, typeof(SpawnColliderBoxTag));
+            CommandBuffer.RemoveComponent(index, entity, typeof(SpawnColliderTag));
         }
     }
 
 
-    // OnUpdate runs on the main thread.
     protected override JobHandle OnUpdate(JobHandle inputDependencies)
     {
-
-        boxesToAdd = new NativeArray<float3>(m_CollidersGroup.CalculateLength(), Allocator.TempJob, NativeArrayOptions.UninitializedMemory);
+        if (!boxesToAdd.IsCreated) {
+            boxesToAdd = new NativeArray<float3>(m_CollidersGroup.CalculateLength(), Allocator.TempJob, NativeArrayOptions.UninitializedMemory);
+        }
 
         var colliderJob = new AddCollidersJob() {
             CommandBuffer = m_EntityCommandBufferSystem.CreateCommandBuffer().ToConcurrent(),
@@ -66,9 +79,11 @@ public class BoxCollidersSystem : JobComponentSystem
 
         colliderJob.Complete();
 
-        for (int i = 0; i < boxesToAdd.Length; i ++) {
-            if (colliderBox) {
-                Object.Instantiate(colliderBox, boxesToAdd[i], Quaternion.identity);
+        if (m_CollidersGroup.CalculateLength() > 0) {
+            for (int i = 0; i < boxesToAdd.Length; i++) {
+                if (colliderBox) {
+                    Object.Instantiate(colliderBox, boxesToAdd[i], Quaternion.identity);
+                }
             }
         }
         boxesToAdd.Dispose();

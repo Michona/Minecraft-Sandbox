@@ -8,5 +8,6 @@ public class Launcher : MonoBehaviour
     void Start()
     {
         GameInstance.StartGame();
+        GenerateTerrainProxy.Instance.StartGame();
     }
 }
