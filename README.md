@@ -9,8 +9,6 @@ If runnning from editor feel free to test out the limit by increasing the number
 
 Have fun!
 
-#
-
 ## Controls
 * Basic FPS controlls for the character.
 * Left Mouse Click - Create block
